@@ -2,7 +2,7 @@
   "config": {
     "step": {
       "discovery_confirm": {
-        "description": "Do you want to set up {name}?"
+        "description": "Do you want to set up {model}?"
       },
       "user": {
         "data": {

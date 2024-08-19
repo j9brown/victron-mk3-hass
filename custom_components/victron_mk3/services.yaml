@@ -1,0 +1,30 @@
+set_remote_panel_state:
+  name: set_remote_panel_state
+  description: "Sets the remote panel mode and current limit."
+  fields:
+    device_id:
+      name: Target
+      description: ""
+      selector:
+        device:
+          filter:
+            integration: "victron_mk3"
+    mode:
+      name: Mode
+      description: Desired operation mode
+      selector:
+        select:
+          options:
+            - "off"
+            - "on"
+            - charger_only
+            - inverter_only
+    current_limit:
+      name: Current limit
+      description: AC input current limit in amps
+      selector:
+        number:
+          min: 0
+          max: 100
+          step: any
+          mode: box

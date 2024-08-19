@@ -1,11 +1,13 @@
+from __future__ import annotations
+
 from homeassistant.components import usb
 from homeassistant.config_entries import ConfigFlow, ConfigFlowResult
-from homeassistant.const import CONF_NAME, CONF_PORT
+from homeassistant.const import CONF_MODEL, CONF_NAME, CONF_PORT
 from typing import Any
 from victron_mk3 import ProbeResult, probe
 import voluptuous as vol
 
-from .const import DOMAIN
+from .const import CONF_SERIAL_NUMBER, DOMAIN
 
 DEFAULT_ENTRY_NAME = "Victron MK3"
 
@@ -31,7 +33,7 @@ class MK3ConfigFlow(ConfigFlow, domain=DOMAIN):
             self._async_abort_entries_match({CONF_PORT: port})
             probe_result = await probe(port)
             if probe_result == ProbeResult.OK:
-                return self._create_device(name, port)
+                return self.async_create_entry(title=name, data={CONF_PORT: port})
             errors[CONF_PORT] = "cannot_connect"
             placeholders["error_detail"] = probe_result.name.lower()
         else:
@@ -77,15 +79,16 @@ class MK3ConfigFlow(ConfigFlow, domain=DOMAIN):
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         """Handle Discovery confirmation."""
-        name = DEFAULT_ENTRY_NAME
-        description = self._discovery_info.description
-        port = self._discovery_info.device
         if user_input is not None:
-            return self._create_device(name, port)
+            return self.async_create_entry(
+                title=DEFAULT_ENTRY_NAME,
+                data={
+                    CONF_PORT: self._discovery_info.device,
+                    CONF_MODEL: self._discovery_info.description,
+                    CONF_SERIAL_NUMBER: self._discovery_info.serial_number,
+                },
+            )
         return self.async_show_form(
             step_id="discovery_confirm",
-            description_placeholders={CONF_NAME: description},
+            description_placeholders={"model": self._discovery_info.description},
         )
-
-    def _create_device(self, name: str, port: str) -> ConfigFlowResult:
-        return self.async_create_entry(title=name, data={CONF_PORT: port})

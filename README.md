@@ -5,8 +5,22 @@
 A Home Assistant integration for communicating with certain Victron charger and inverter
 devices that have VE.Bus ports using the Victron Interface MK3-USB (VE.Bus to USB).
 
-This integration acts as a remote control panel to monitor the status and performance
-of the device and to set remote switch states and current limits.
+This integration lets you build a remote control panel for your charger/inverter.
+
+- Use sensors to monitor the status of your device and its electrical performance.
+- Use the `victron_mk3.set_remote_panel_mode` service action to change the operating mode
+  (on, off, charger_only, or inverter_only) and optionally the AC input current limit.
+
+Note that the remote panel mode and current limit may persist even after the interface
+has been disconnected or the device is turned off. To restore the device to its default
+behavior, use the `victron_mk3.set_remote_panel_mode` service action to set the operating
+mode back to on and to reset the remotely configured current limit.
+
+For additional flexibility, you can use the Victron Interface MK3-USB together with
+a Victron VE.Bus Smart Dongle. The MK3 interface lets Home Assistant monitor and control
+your device via USB. The smart dongle lets you monitor, control, and configure your device
+via Bluetooth using the VictronConnect app on a smartphone or computer (and passively
+monitor a subset of sensors from Home Assistant using other integrations).
 
 Refer to the [victron-mk3 library](https://github.com/j9brown/victron-mk3) for the list of supported devices.
 
