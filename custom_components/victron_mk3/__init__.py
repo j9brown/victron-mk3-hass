@@ -34,6 +34,7 @@ from victron_mk3 import (
     Frame,
     Handler,
     SwitchState,
+    SwitchRegister,
     VersionFrame,
     VictronMK3,
     logger,
@@ -44,13 +45,10 @@ from .const import (
     CONF_CURRENT_LIMIT,
     CONF_SERIAL_NUMBER,
     DOMAIN,
-    KEY_CONTROLLER,
-    KEY_DATA_UPDATE_COORDINATOR,
-    KEY_DEVICE_ID,
-    KEY_DEVICE_INFO,
+    KEY_CONTEXT,
 )
 
-PLATFORMS: list[Platform] = ["sensor"]
+PLATFORMS: list[Platform] = ["number", "select", "sensor"]
 UPDATE_INTERVAL = timedelta(seconds=10)
 REQUEST_INTERVAL_SECONDS = 1
 
@@ -74,8 +72,12 @@ def enum_options(enum_class) -> List[str]:
     return [x.lower() for x in enum_class._member_names_]
 
 
-def enum_native_value(e: Enum) -> str:
+def enum_value(e: Enum) -> str:
     return str(e) if e.name is None else e.name.lower()
+
+
+def mode_from_value(value: str) -> Mode:
+    return Mode[value.upper()]
 
 
 SERVICE_NAME = "set_remote_panel_state"
@@ -96,6 +98,46 @@ class Data:
         self.dc: DCFrame | None = None
         self.led: LEDFrame | None = None
         self.version: VersionFrame | None = None
+
+    def front_panel_mode(self) -> Mode | None:
+        if self.config is None:
+            return None
+        reg = self.config.switch_register
+        if reg & SwitchRegister.FRONT_SWITCH_UP != 0:
+            return Mode.ON
+        if reg & SwitchRegister.FRONT_SWITCH_DOWN != 0:
+            return Mode.CHARGER_ONLY
+        return Mode.OFF
+
+    def remote_panel_mode(self) -> Mode | None:
+        if self.config is None:
+            return None
+        reg = self.config.switch_register
+        if reg & SwitchRegister.DIRECT_REMOTE_SWITCH_CHARGE != 0:
+            if reg & SwitchRegister.DIRECT_REMOTE_SWITCH_INVERT != 0:
+                return Mode.ON
+            else:
+                return Mode.CHARGER_ONLY
+        else:
+            if reg & SwitchRegister.DIRECT_REMOTE_SWITCH_INVERT != 0:
+                return Mode.INVERTER_ONLY
+            else:
+                return Mode.OFF
+
+    def actual_mode(self) -> Mode | None:
+        if self.config is None:
+            return None
+        reg = self.config.switch_register
+        if reg & SwitchRegister.SWITCH_CHARGE != 0:
+            if reg & SwitchRegister.SWITCH_INVERT != 0:
+                return Mode.ON
+            else:
+                return Mode.CHARGER_ONLY
+        else:
+            if reg & SwitchRegister.SWITCH_INVERT != 0:
+                return Mode.INVERTER_ONLY
+            else:
+                return Mode.OFF
 
 
 class Controller(Handler):
@@ -169,6 +211,20 @@ class Controller(Handler):
         await asyncio.sleep(REQUEST_INTERVAL_SECONDS)
 
 
+class Context:
+    def __init__(
+        self,
+        controller: Controller,
+        coordinator: DataUpdateCoordinator[Data],
+        device_id: str,
+        device_info: DeviceInfo,
+    ) -> None:
+        self.controller = controller
+        self.coordinator = coordinator
+        self.device_id = device_id
+        self.device_info = device_info
+
+
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up a config entry."""
     port = entry.data[CONF_PORT]
@@ -193,10 +249,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     hass.data.setdefault(DOMAIN, {})
     hass.data[DOMAIN][entry.entry_id] = {
-        KEY_CONTROLLER: controller,
-        KEY_DATA_UPDATE_COORDINATOR: coordinator,
-        KEY_DEVICE_ID: device.id,
-        KEY_DEVICE_INFO: DeviceInfo(identifiers={(DOMAIN, port)}),
+        KEY_CONTEXT: Context(
+            controller, coordinator, device.id, DeviceInfo(identifiers={(DOMAIN, port)})
+        )
     }
 
     await controller.start()
@@ -219,7 +274,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 async def _async_setup_services(hass: HomeAssistant) -> None:
     async def _handle_set_remote_panel_state(call: ServiceCall) -> None:
         device_id = call.data[CONF_DEVICE_ID]
-        mode = Mode[call.data[CONF_MODE].upper()]
+        mode = mode_from_value(call.data[CONF_MODE])
         current_limit = call.data.get(CONF_CURRENT_LIMIT, None)
         await set_remote_panel_state(hass, device_id, mode, current_limit)
 
@@ -241,10 +296,9 @@ async def set_remote_panel_state(
     for entry_id in device.config_entries:
         entry_data = hass.data[DOMAIN].get(entry_id, None)
         if entry_data is not None:
-            controller = entry_data[KEY_CONTROLLER]
-            coordinator = entry_data[KEY_DATA_UPDATE_COORDINATOR]
-            await controller.set_remote_panel_state(mode, current_limit)
-            await coordinator.async_request_refresh()
+            context = entry_data[KEY_CONTEXT]
+            await context.controller.set_remote_panel_state(mode, current_limit)
+            await context.coordinator.async_request_refresh()
             return
 
     raise HomeAssistantError(f"Device ID {device_id} cannot handle this request")

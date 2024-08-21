@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from enum import Enum
 from homeassistant.components.sensor import (
     SensorDeviceClass,
     SensorEntity,
@@ -16,57 +15,17 @@ from homeassistant.const import (
     UnitOfElectricPotential,
 )
 from homeassistant.core import HomeAssistant, callback
-from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.update_coordinator import (
-    DataUpdateCoordinator,
-    CoordinatorEntity,
-)
+from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.helpers.typing import StateType
 from typing import Callable
-from victron_mk3 import DeviceState, LEDState, SwitchRegister, SwitchState
+from victron_mk3 import DeviceState
 
-from . import Data, Mode, enum_options, enum_native_value
+from . import Context, Data, Mode, enum_options, enum_value
 from .const import (
     DOMAIN,
-    KEY_DATA_UPDATE_COORDINATOR,
-    KEY_DEVICE_ID,
-    KEY_DEVICE_INFO,
+    KEY_CONTEXT,
 )
-
-
-def front_panel_mode(reg: SwitchRegister) -> Mode:
-    if reg & SwitchRegister.FRONT_SWITCH_UP != 0:
-        return Mode.ON
-    if reg & SwitchRegister.FRONT_SWITCH_DOWN != 0:
-        return Mode.CHARGER_ONLY
-    return Mode.OFF
-
-
-def remote_panel_mode(reg: SwitchRegister) -> Mode:
-    if reg & SwitchRegister.DIRECT_REMOTE_SWITCH_CHARGE != 0:
-        if reg & SwitchRegister.DIRECT_REMOTE_SWITCH_INVERT != 0:
-            return Mode.ON
-        else:
-            return Mode.CHARGER_ONLY
-    else:
-        if reg & SwitchRegister.DIRECT_REMOTE_SWITCH_INVERT != 0:
-            return Mode.INVERTER_ONLY
-        else:
-            return Mode.OFF
-
-
-def actual_mode(reg: SwitchRegister) -> Mode:
-    if reg & SwitchRegister.SWITCH_CHARGE != 0:
-        if reg & SwitchRegister.SWITCH_INVERT != 0:
-            return Mode.ON
-        else:
-            return Mode.CHARGER_ONLY
-    else:
-        if reg & SwitchRegister.SWITCH_INVERT != 0:
-            return Mode.INVERTER_ONLY
-        else:
-            return Mode.OFF
 
 
 @dataclass(kw_only=True)
@@ -127,7 +86,7 @@ def make_ac_phase_sensors(phase: int) -> tuple[VictronMK3SensorEntityDescription
     )
 
 
-SENSORS: tuple[VictronMK3SensorEntityDescription, ...] = (
+ENTITY_DESCRIPTIONS: tuple[VictronMK3SensorEntityDescription, ...] = (
     (
         VictronMK3SensorEntityDescription(
             key="ac_input_current_limit",
@@ -215,9 +174,10 @@ SENSORS: tuple[VictronMK3SensorEntityDescription, ...] = (
             name="Device State",
             device_class=SensorDeviceClass.ENUM,
             options=enum_options(DeviceState),
+            entity_category=EntityCategory.DIAGNOSTIC,
             value_fn=lambda data: None
             if data.ac[0] is None
-            else enum_native_value(data.ac[0].device_state),
+            else enum_value(data.ac[0].device_state),
         ),
         VictronMK3SensorEntityDescription(
             key="firmware_version",
@@ -233,9 +193,7 @@ SENSORS: tuple[VictronMK3SensorEntityDescription, ...] = (
             name="Lit Indicators",
             device_class=SensorDeviceClass.ENUM,
             entity_category=EntityCategory.DIAGNOSTIC,
-            value_fn=lambda data: None
-            if data.led is None
-            else enum_native_value(data.led.on),
+            value_fn=lambda data: None if data.led is None else enum_value(data.led.on),
         ),
         VictronMK3SensorEntityDescription(
             key="blinking_indicators",
@@ -244,7 +202,7 @@ SENSORS: tuple[VictronMK3SensorEntityDescription, ...] = (
             entity_category=EntityCategory.DIAGNOSTIC,
             value_fn=lambda data: None
             if data.led is None
-            else enum_native_value(data.led.blink),
+            else enum_value(data.led.blink),
         ),
         VictronMK3SensorEntityDescription(
             key="front_panel_mode",
@@ -252,19 +210,7 @@ SENSORS: tuple[VictronMK3SensorEntityDescription, ...] = (
             device_class=SensorDeviceClass.ENUM,
             options=enum_options(Mode),
             entity_category=EntityCategory.DIAGNOSTIC,
-            value_fn=lambda data: None
-            if data.config is None
-            else enum_native_value(front_panel_mode(data.config.switch_register)),
-        ),
-        VictronMK3SensorEntityDescription(
-            key="remote_panel_mode",
-            name="Remote Panel Mode",
-            device_class=SensorDeviceClass.ENUM,
-            options=enum_options(Mode),
-            entity_category=EntityCategory.DIAGNOSTIC,
-            value_fn=lambda data: None
-            if data.config is None
-            else enum_native_value(remote_panel_mode(data.config.switch_register)),
+            value_fn=lambda data: enum_value(data.front_panel_mode()),
         ),
         VictronMK3SensorEntityDescription(
             key="actual_mode",
@@ -272,14 +218,12 @@ SENSORS: tuple[VictronMK3SensorEntityDescription, ...] = (
             device_class=SensorDeviceClass.ENUM,
             options=enum_options(Mode),
             entity_category=EntityCategory.DIAGNOSTIC,
-            value_fn=lambda data: None
-            if data.config is None
-            else enum_native_value(actual_mode(data.config.switch_register)),
+            value_fn=lambda data: enum_value(data.actual_mode()),
         ),
     )
     + make_ac_phase_sensors(1)
     + make_ac_phase_sensors(2)
-    # + make_ac_phase_sensors(3)
+    + make_ac_phase_sensors(3)
     # + make_ac_phase_sensors(4)
 )
 
@@ -288,16 +232,14 @@ class VictronMK3SensorEntity(CoordinatorEntity, SensorEntity):
     _attr_has_entity_name = True
 
     def __init__(
-        self,
-        coordinator: DataUpdateCoordinator[Data],
-        entity_description: VictronMK3SensorEntityDescription,
-        device_id: str,
-        device_info: DeviceInfo,
+        self, context: Context, entity_description: VictronMK3SensorEntityDescription
     ):
-        CoordinatorEntity.__init__(self, coordinator, entity_description.key)
+        CoordinatorEntity.__init__(self, context.coordinator, entity_description.key)
         self.entity_description = entity_description
-        self._attr_device_info = device_info
-        self._attr_unique_id = f"{device_id}-{entity_description.key}"
+        self._attr_device_info = context.device_info
+        self._attr_unique_id = f"{context.device_id}-{entity_description.key}"
+        self._attr_available = False
+        self._attr_native_value = None
 
     @callback
     def _handle_coordinator_update(self) -> None:
@@ -316,11 +258,8 @@ async def async_setup_entry(
     entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    entry_data = hass.data[DOMAIN][entry.entry_id]
-    coordinator = entry_data[KEY_DATA_UPDATE_COORDINATOR]
-    device_id = entry_data[KEY_DEVICE_ID]
-    device_info = entry_data[KEY_DEVICE_INFO]
+    context = hass.data[DOMAIN][entry.entry_id][KEY_CONTEXT]
     async_add_entities(
-        VictronMK3SensorEntity(coordinator, description, device_id, device_info)
-        for description in SENSORS
+        VictronMK3SensorEntity(context, description)
+        for description in ENTITY_DESCRIPTIONS
     )

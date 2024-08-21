@@ -7,16 +7,86 @@ devices that have VE.Bus ports using the Victron Interface MK3-USB (VE.Bus to US
 
 This integration lets you build a remote control panel for your charger/inverter.
 
-- Use sensors to monitor the status of your device and its electrical performance.
-- Use the `victron_mk3.set_remote_panel_mode` service action to change the operating mode
-  (on, off, charger_only, or inverter_only) and optionally the AC input current limit.
+- Sensors describe the status of your device and its electrical performance.
+- The `Remote Panel Mode` entity sets the mode to on, off, charger_only, or inverter_only.
+- The `Remote Panel Current Limit` entity sets the AC input current limit.
+- The `victron_mk3.set_remote_panel_state` service action sets both the panel mode and the
+  current limit simultaneously.
 
-Note that the remote panel mode and current limit may persist even after the interface
+Note that the remote panel mode and current limit persists even after the interface
 has been disconnected or the device is turned off. To restore the device to its default
-behavior, use the `victron_mk3.set_remote_panel_mode` service action to set the operating
-mode back to on and to reset the remotely configured current limit.
+behavior, set the remote panel mode to `on` and set the current limit to its maximum.
 
 Refer to the [victron-mk3 library](https://github.com/j9brown/victron-mk3) for the list of supported devices.
+
+## Entities
+
+### AC Sensors
+
+- AC Input Voltage
+- AC Input Current
+- AC Input Frequency
+- AC Output Voltage
+- AC Output Current
+- AC Output Frequency
+
+If your device has multiple AC phases, you must enable the sensors for the additional phases that
+you need (such as AC Input Voltage L2) because they are disabled by default.
+
+### Battery Sensors
+
+- Battery Voltage
+- Battery Input Current
+- Battery Output Current
+
+### Configuration
+
+- Remote Panel Mode: off, on, charging_only, inverter_only
+- Remote Panel Current Limit
+
+### Diagnostics
+
+- AC Input Current Limit
+- AC Input Current Limit Maximum
+- AC Input Current Limit Minimum
+- Device State: down, startup, off, slave, invert_full, invert_half, invert_aes, power_assist, bypass, state_charge
+- Front Panel Mode: off, on, charging_only
+- Actual Mode: off, on, charging_only, inverter_only
+- Lit Indicators: mains, absorption, bulk, float, inverter, overload, low_battery, temperature
+- Blinking Indicators: mains, absorption, bulk, float, inverter, overload, low_battery, temperature
+- Firmware Version
+
+## Services
+
+The `victron_mk3.set_remote_panel_state` service action sets the remote panel mode and
+current limit simultaneously. The mode is required whereas the current limit is optional
+and defaults to its maximum value.
+
+The device id is a unique identifier assigned to the device by Home Assistant. To find this
+value, visit the Developer Tools -> Actions page in the Home Assistant UI, select the
+`victron_mk3.set_remote_panel_state` action, pick the device from the list of targets,
+then view the result in YAML mode.
+
+Here are some examples.
+
+Set the remote panel mode to `on` and the current limit to its maximum.
+
+```yaml
+action: victron_mk3.set_remote_panel_state
+data:
+  device_id: 54b361121006d7658fa486a9ebaf02bc
+  mode: "on"
+```
+
+Set the remote panel mode to `charger_only` and the current limit to 12.5 amps.
+
+```yaml
+action: victron_mk3.set_remote_panel_state
+data:
+  device_id: 54b361121006d7658fa486a9ebaf02bc
+  mode: "charger_only"
+  current_limit: 12.5
+```
 
 # Installation
 
