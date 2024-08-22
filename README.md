@@ -135,32 +135,38 @@ serial port device.
 
 # Alternatives
 
-Victron offers several products for controlling VE.Bus based charger and inverter devices.
+Victron provides several options for controlling VE.Bus based charger and inverter devices.
 Here's a quick overview of some of them.
 
 [Victron Interface MK3-USB](https://www.victronenergy.com/accessories/interface-mk3-usb):
 
 - Actively monitor and control your device with Home Assistant using this
   [victron-mk3-hacs](https://github.com/j9brown/victron-mk3-hacs) integration.
-- Configure your device when plugged into a computer running [VictronConnect](https://www.victronenergy.com/victronconnectapp/victronconnect/downloads).
+- Can set the operating mode and current limit and keep the device in standby.
+- Configure your device over USB from a computer running [VictronConnect](https://www.victronenergy.com/victronconnectapp/victronconnect/downloads).
 
 [Victron VE.Bus Smart Dongle](https://www.victronenergy.com/communication-centres/ve-bus-smart-dongle):
 
 - Passively monitor your device with Home Assistant via Bluetooth Low Energy using
   the [victron-ble-hacs](https://github.com/keshavdv/victron-hacs) integration (or
-  this [fork](https://github.com/j9brown/victron-hacs/tree/main).
-- Configure your device wirelessly from a computer or smartphone running [VictronConnect](https://www.victronenergy.com/victronconnectapp/victronconnect/downloads).
-- Cannot set the operating mode or current limit.
-- Does not report AC input and output voltages and frequency over Bluetooth LE
-  (Home Assistant cannot determine whether the device is plugged into mains when the charger
-  and inverter are not operating) unlike Victron Interface MK3-USB.
+  this [fork](https://github.com/j9brown/victron-hacs/tree/main)) or with an
+  [ESPHome device](https://esphome.io/) and the [esphome-victron_ble](https://github.com/Fabian-Schmidt/esphome-victron_ble) component.
+- Because the integrations are passive, they cannot set the operating mode or current limit.
+- Configure your device over Bluetooth from a computer or smartphone running
+  [VictronConnect](https://www.victronenergy.com/victronconnectapp/victronconnect/downloads).
 
 [Victron GX Controllers](https://www.victronenergy.com/communication-centres):
 
-- Actively monitor and control your device with Home Assistant via a TCP connection
-  using the [hass-victron]https://github.com/sfstar/hass-victron).
-- Some variants offer programmable control panels and displays.
+- Actively monitor and control your device with Home Assistant over a network connection
+  using the [hass-victron]https://github.com/sfstar/hass-victron) integration.
+- Some GX devices have displays and programmable control panels.
 
-On devices with multiple VE.Bus ports, it is possible to combine products to achieve
-complementary goals. This author uses the USB interface to let Home Assistant control
-the operating mode and a Bluetooth smart dongle for the VictronConnect app.
+Built-in remote on/off control:
+
+- Simple: only requires wiring a switch to the remote on/off terminals.
+- On/off only: cannot switch between operating modes such as on and charger_only.
+
+For devices with multiple VE.Bus ports, you can combine certain products to achieve
+complementary goals such as using a Smart Dongle to configure devices with the
+VictronConnect app and using a USB Interface to remotely set the operating mode
+and current limit from Home Assistant.
