@@ -158,7 +158,7 @@ Here's a quick overview of some of them.
 [Victron GX Controllers](https://www.victronenergy.com/communication-centres):
 
 - Actively monitor and control your device with Home Assistant over a network connection
-  using the [hass-victron]https://github.com/sfstar/hass-victron) integration.
+  using the [hass-victron](https://github.com/sfstar/hass-victron) integration.
 - Some GX devices have displays and programmable control panels.
 
 Built-in remote on/off control:
