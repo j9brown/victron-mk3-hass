@@ -10,6 +10,8 @@ This integration lets you build a remote control panel for your charger/inverter
 - Sensors describe the status of your device and its electrical performance.
 - The `Remote Panel Mode` entity sets the mode to on, off, charger_only, or inverter_only.
 - The `Remote Panel Current Limit` entity sets the AC input current limit.
+- The `Remote Panel Standby` entity sets whether the device will be prevented from
+  sleeping while it is turned off. Refer to the standby section for more details.
 - The `victron_mk3.set_remote_panel_state` service action sets both the panel mode and the
   current limit simultaneously.
 
@@ -21,7 +23,7 @@ Refer to the [victron-mk3 library](https://github.com/j9brown/victron-mk3) for t
 
 ## Entities
 
-### AC Sensors
+### AC sensors
 
 - AC Input Voltage
 - AC Input Current
@@ -33,18 +35,19 @@ Refer to the [victron-mk3 library](https://github.com/j9brown/victron-mk3) for t
 If your device has multiple AC phases, you must enable the sensors for the additional phases that
 you need (such as AC Input Voltage L2) because they are disabled by default.
 
-### Battery Sensors
+### Battery sensors
 
 - Battery Voltage
 - Battery Input Current
 - Battery Output Current
 
-### Configuration
+### Configuration entities
 
 - Remote Panel Mode: off, on, charging_only, inverter_only
 - Remote Panel Current Limit
+- Remote Panel Standby: off, on
 
-### Diagnostics
+### Diagnostic entities
 
 - AC Input Current Limit
 - AC Input Current Limit Maximum
@@ -87,6 +90,25 @@ data:
   mode: "charger_only"
   current_limit: 12.5
 ```
+
+## Standby
+
+When the device is turned off, it may go to sleep and shut off its internal power supply
+to avoid draining the batteries. Because the MK3 interface is powered from device's VE.Bus
+port, it too will lose power and it will become unresponsive. Consequently, you will not
+be able to turn the device back on again using the interface.
+
+Don't panic!
+
+There are two ways to resolve this issue:
+
+- When standby mode is enabled, the interface will prevent the device from going to sleep
+  as long as it remains connected to the device's VE.Bus. Note that the device draws more energy
+  from the batteries while in standby than it would while sleeping.
+- The device will automatically wake up from sleep whenever power is supplied to its AC input.
+
+So if the device is asleep and it is not responding to the MK3 interface, just plug it into
+the AC mains to wake it up. Try sending the command again and consider enabling standby mode.
 
 # Installation
 

@@ -31,11 +31,12 @@ from victron_mk3 import (
     ConfigFrame,
     DCFrame,
     Fault,
-    LEDFrame,
     Frame,
     Handler,
-    SwitchState,
+    InterfaceFlags,
+    LEDFrame,
     SwitchRegister,
+    SwitchState,
     VersionFrame,
     VictronMK3,
     logger,
@@ -50,9 +51,13 @@ from .const import (
     KEY_CONTEXT,
 )
 
-PLATFORMS: list[Platform] = ["number", "select", "sensor"]
+PLATFORMS: list[Platform] = ["number", "select", "sensor", "switch"]
 UPDATE_INTERVAL = timedelta(seconds=10)
-REQUEST_INTERVAL_SECONDS = 1
+
+# The documentation recommends a 500 ms timeout for most requests.
+REQUEST_INTERVAL_SECONDS = 0.5
+# The documentation says that 'F' 5 can take longer and recommends using a timeout greater than 750 ms.
+REQUEST_INTERVAL_SECONDS_FOR_CONFIG = 1
 
 
 class Mode(Enum):
@@ -147,6 +152,7 @@ class Controller(Handler):
         self._mk3 = VictronMK3(port)
         self._data: Data | None = None
         self._fault: Fault | None = None
+        self.standby: bool | None = None
 
     async def start(self) -> None:
         await self._mk3.start(self)
@@ -187,20 +193,30 @@ class Controller(Handler):
             raise UpdateFailed(f"Communication fault: {self._fault}")
 
         # Note: We don't need to ask for version frames because the interface sends them periodically
+        if self.standby is not None:
+            flags = InterfaceFlags.PANEL_DETECT
+            if self.standby:
+                flags |= InterfaceFlags.STANDBY
+            self._mk3.send_interface_request(flags)
+            await asyncio.sleep(REQUEST_INTERVAL_SECONDS)
+
         self._mk3.send_led_request()
         await asyncio.sleep(REQUEST_INTERVAL_SECONDS)
+
         self._mk3.send_dc_request()
         await asyncio.sleep(REQUEST_INTERVAL_SECONDS)
+
         for phase in range(1, AC_PHASES_POLLED):
             # It might be nice to optimize the polling based on AC_Frame.ac_num_phases
             # but it seems to report an incorrect number of phases on at least some devices.
             self._mk3.send_ac_request(phase)
             await asyncio.sleep(REQUEST_INTERVAL_SECONDS)
+
         self._mk3.send_config_request()
-        await asyncio.sleep(REQUEST_INTERVAL_SECONDS)
+        await asyncio.sleep(REQUEST_INTERVAL_SECONDS_FOR_CONFIG)
 
         if self._data is None:
-            raise UpdateFailed("No data available")
+            raise UpdateFailed("Device is asleep")
         return self._data
 
     async def set_remote_panel_state(
