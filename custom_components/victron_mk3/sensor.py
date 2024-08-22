@@ -23,6 +23,7 @@ from victron_mk3 import DeviceState
 
 from . import Context, Data, Mode, enum_options, enum_value
 from .const import (
+    AC_PHASES_POLLED,
     DOMAIN,
     KEY_CONTEXT,
 )
@@ -86,146 +87,143 @@ def make_ac_phase_sensors(phase: int) -> tuple[VictronMK3SensorEntityDescription
     )
 
 
+def make_all_ac_phase_sensors() -> tuple[VictronMK3SensorEntityDescription, ...]:
+    sensors = ()
+    for phase in range(1, AC_PHASES_POLLED + 1):
+        sensors += make_ac_phase_sensors(phase)
+    return sensors
+
+
 ENTITY_DESCRIPTIONS: tuple[VictronMK3SensorEntityDescription, ...] = (
-    (
-        VictronMK3SensorEntityDescription(
-            key="ac_input_current_limit",
-            name="AC Input Current Limit",
-            device_class=SensorDeviceClass.CURRENT,
-            state_class=SensorStateClass.MEASUREMENT,
-            native_unit_of_measurement=UnitOfElectricCurrent.AMPERE,
-            entity_category=EntityCategory.DIAGNOSTIC,
-            value_fn=lambda data: None
-            if data.config is None
-            else data.config.actual_current_limit,
-        ),
-        VictronMK3SensorEntityDescription(
-            key="ac_input_current_limit_maximum",
-            name="AC Input Current Limit Maximum",
-            device_class=SensorDeviceClass.CURRENT,
-            state_class=SensorStateClass.MEASUREMENT,
-            native_unit_of_measurement=UnitOfElectricCurrent.AMPERE,
-            entity_category=EntityCategory.DIAGNOSTIC,
-            value_fn=lambda data: None
-            if data.config is None
-            else data.config.maximum_current_limit,
-        ),
-        VictronMK3SensorEntityDescription(
-            key="ac_input_current_limit_minimum",
-            name="AC Input Current Limit Minimum",
-            device_class=SensorDeviceClass.CURRENT,
-            state_class=SensorStateClass.MEASUREMENT,
-            native_unit_of_measurement=UnitOfElectricCurrent.AMPERE,
-            entity_category=EntityCategory.DIAGNOSTIC,
-            value_fn=lambda data: None
-            if data.config is None
-            else data.config.minimum_current_limit,
-        ),
-        VictronMK3SensorEntityDescription(
-            key="ac_input_frequency",
-            name="AC Input Frequency",
-            device_class=SensorDeviceClass.FREQUENCY,
-            state_class=SensorStateClass.MEASUREMENT,
-            native_unit_of_measurement=UnitOfFrequency.HERTZ,
-            value_fn=lambda data: None
-            if data.ac[0] is None
-            else data.ac[0].ac_mains_frequency,
-        ),
-        VictronMK3SensorEntityDescription(
-            key="ac_output_frequency",
-            name="AC Output Frequency",
-            device_class=SensorDeviceClass.FREQUENCY,
-            state_class=SensorStateClass.MEASUREMENT,
-            native_unit_of_measurement=UnitOfFrequency.HERTZ,
-            value_fn=lambda data: None
-            if data.dc is None
-            else data.dc.ac_inverter_frequency,
-        ),
-        VictronMK3SensorEntityDescription(
-            key="battery_voltage",
-            name="Battery Voltage",
-            device_class=SensorDeviceClass.VOLTAGE,
-            state_class=SensorStateClass.MEASUREMENT,
-            native_unit_of_measurement=UnitOfElectricPotential.VOLT,
-            value_fn=lambda data: None if data.dc is None else data.dc.dc_voltage,
-        ),
-        VictronMK3SensorEntityDescription(
-            key="battery_input_current",
-            name="Battery Input Current",
-            device_class=SensorDeviceClass.CURRENT,
-            state_class=SensorStateClass.MEASUREMENT,
-            native_unit_of_measurement=UnitOfElectricCurrent.AMPERE,
-            value_fn=lambda data: None
-            if data.dc is None
-            else data.dc.dc_current_from_charger,
-        ),
-        VictronMK3SensorEntityDescription(
-            key="battery_output_current",
-            name="Battery Output Current",
-            device_class=SensorDeviceClass.CURRENT,
-            state_class=SensorStateClass.MEASUREMENT,
-            native_unit_of_measurement=UnitOfElectricCurrent.AMPERE,
-            value_fn=lambda data: None
-            if data.dc is None
-            else data.dc.dc_current_to_inverter,
-        ),
-        VictronMK3SensorEntityDescription(
-            key="device_state",
-            name="Device State",
-            device_class=SensorDeviceClass.ENUM,
-            options=enum_options(DeviceState),
-            entity_category=EntityCategory.DIAGNOSTIC,
-            value_fn=lambda data: None
-            if data.ac[0] is None
-            else enum_value(data.ac[0].device_state),
-        ),
-        VictronMK3SensorEntityDescription(
-            key="firmware_version",
-            name="Firmware Version",
-            state_class=SensorStateClass.MEASUREMENT,
-            entity_category=EntityCategory.DIAGNOSTIC,
-            value_fn=lambda data: None
-            if data.version is None
-            else data.version.version,
-        ),
-        VictronMK3SensorEntityDescription(
-            key="lit_indicators",
-            name="Lit Indicators",
-            device_class=SensorDeviceClass.ENUM,
-            entity_category=EntityCategory.DIAGNOSTIC,
-            value_fn=lambda data: None if data.led is None else enum_value(data.led.on),
-        ),
-        VictronMK3SensorEntityDescription(
-            key="blinking_indicators",
-            name="Blinking Indicators",
-            device_class=SensorDeviceClass.ENUM,
-            entity_category=EntityCategory.DIAGNOSTIC,
-            value_fn=lambda data: None
-            if data.led is None
-            else enum_value(data.led.blink),
-        ),
-        VictronMK3SensorEntityDescription(
-            key="front_panel_mode",
-            name="Front Panel Mode",
-            device_class=SensorDeviceClass.ENUM,
-            options=enum_options(Mode),
-            entity_category=EntityCategory.DIAGNOSTIC,
-            value_fn=lambda data: enum_value(data.front_panel_mode()),
-        ),
-        VictronMK3SensorEntityDescription(
-            key="actual_mode",
-            name="Actual Mode",
-            device_class=SensorDeviceClass.ENUM,
-            options=enum_options(Mode),
-            entity_category=EntityCategory.DIAGNOSTIC,
-            value_fn=lambda data: enum_value(data.actual_mode()),
-        ),
-    )
-    + make_ac_phase_sensors(1)
-    + make_ac_phase_sensors(2)
-    + make_ac_phase_sensors(3)
-    # + make_ac_phase_sensors(4)
-)
+    VictronMK3SensorEntityDescription(
+        key="ac_input_current_limit",
+        name="AC Input Current Limit",
+        device_class=SensorDeviceClass.CURRENT,
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement=UnitOfElectricCurrent.AMPERE,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        value_fn=lambda data: None
+        if data.config is None
+        else data.config.actual_current_limit,
+    ),
+    VictronMK3SensorEntityDescription(
+        key="ac_input_current_limit_maximum",
+        name="AC Input Current Limit Maximum",
+        device_class=SensorDeviceClass.CURRENT,
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement=UnitOfElectricCurrent.AMPERE,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        value_fn=lambda data: None
+        if data.config is None
+        else data.config.maximum_current_limit,
+    ),
+    VictronMK3SensorEntityDescription(
+        key="ac_input_current_limit_minimum",
+        name="AC Input Current Limit Minimum",
+        device_class=SensorDeviceClass.CURRENT,
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement=UnitOfElectricCurrent.AMPERE,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        value_fn=lambda data: None
+        if data.config is None
+        else data.config.minimum_current_limit,
+    ),
+    VictronMK3SensorEntityDescription(
+        key="ac_input_frequency",
+        name="AC Input Frequency",
+        device_class=SensorDeviceClass.FREQUENCY,
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement=UnitOfFrequency.HERTZ,
+        value_fn=lambda data: None
+        if data.ac[0] is None
+        else data.ac[0].ac_mains_frequency,
+    ),
+    VictronMK3SensorEntityDescription(
+        key="ac_output_frequency",
+        name="AC Output Frequency",
+        device_class=SensorDeviceClass.FREQUENCY,
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement=UnitOfFrequency.HERTZ,
+        value_fn=lambda data: None
+        if data.dc is None
+        else data.dc.ac_inverter_frequency,
+    ),
+    VictronMK3SensorEntityDescription(
+        key="battery_voltage",
+        name="Battery Voltage",
+        device_class=SensorDeviceClass.VOLTAGE,
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement=UnitOfElectricPotential.VOLT,
+        value_fn=lambda data: None if data.dc is None else data.dc.dc_voltage,
+    ),
+    VictronMK3SensorEntityDescription(
+        key="battery_input_current",
+        name="Battery Input Current",
+        device_class=SensorDeviceClass.CURRENT,
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement=UnitOfElectricCurrent.AMPERE,
+        value_fn=lambda data: None
+        if data.dc is None
+        else data.dc.dc_current_from_charger,
+    ),
+    VictronMK3SensorEntityDescription(
+        key="battery_output_current",
+        name="Battery Output Current",
+        device_class=SensorDeviceClass.CURRENT,
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement=UnitOfElectricCurrent.AMPERE,
+        value_fn=lambda data: None
+        if data.dc is None
+        else data.dc.dc_current_to_inverter,
+    ),
+    VictronMK3SensorEntityDescription(
+        key="device_state",
+        name="Device State",
+        device_class=SensorDeviceClass.ENUM,
+        options=enum_options(DeviceState),
+        entity_category=EntityCategory.DIAGNOSTIC,
+        value_fn=lambda data: None
+        if data.ac[0] is None
+        else enum_value(data.ac[0].device_state),
+    ),
+    VictronMK3SensorEntityDescription(
+        key="firmware_version",
+        name="Firmware Version",
+        state_class=SensorStateClass.MEASUREMENT,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        value_fn=lambda data: None if data.version is None else data.version.version,
+    ),
+    VictronMK3SensorEntityDescription(
+        key="lit_indicators",
+        name="Lit Indicators",
+        device_class=SensorDeviceClass.ENUM,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        value_fn=lambda data: None if data.led is None else enum_value(data.led.on),
+    ),
+    VictronMK3SensorEntityDescription(
+        key="blinking_indicators",
+        name="Blinking Indicators",
+        device_class=SensorDeviceClass.ENUM,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        value_fn=lambda data: None if data.led is None else enum_value(data.led.blink),
+    ),
+    VictronMK3SensorEntityDescription(
+        key="front_panel_mode",
+        name="Front Panel Mode",
+        device_class=SensorDeviceClass.ENUM,
+        options=enum_options(Mode),
+        entity_category=EntityCategory.DIAGNOSTIC,
+        value_fn=lambda data: enum_value(data.front_panel_mode()),
+    ),
+    VictronMK3SensorEntityDescription(
+        key="actual_mode",
+        name="Actual Mode",
+        device_class=SensorDeviceClass.ENUM,
+        options=enum_options(Mode),
+        entity_category=EntityCategory.DIAGNOSTIC,
+        value_fn=lambda data: enum_value(data.actual_mode()),
+    ),
+) + make_all_ac_phase_sensors()
 
 
 class VictronMK3SensorEntity(CoordinatorEntity, SensorEntity):

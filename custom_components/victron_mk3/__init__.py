@@ -26,6 +26,7 @@ from homeassistant.helpers.update_coordinator import (
 import logging
 from typing import List
 from victron_mk3 import (
+    AC_PHASES_SUPPORTED,
     ACFrame,
     ConfigFrame,
     DCFrame,
@@ -42,6 +43,7 @@ from victron_mk3 import (
 import voluptuous as vol
 
 from .const import (
+    AC_PHASES_POLLED,
     CONF_CURRENT_LIMIT,
     CONF_SERIAL_NUMBER,
     DOMAIN,
@@ -93,7 +95,7 @@ SERVICE_SCHEMA = vol.Schema(
 
 class Data:
     def __init__(self) -> None:
-        self.ac: List[ACFrame | None] = [None, None, None, None]
+        self.ac: List[ACFrame | None] = [None] * AC_PHASES_SUPPORTED
         self.config: ConfigFrame | None = None
         self.dc: DCFrame | None = None
         self.led: LEDFrame | None = None
@@ -145,7 +147,6 @@ class Controller(Handler):
         self._mk3 = VictronMK3(port)
         self._data: Data | None = None
         self._fault: Fault | None = None
-        self._ac_num_phases: int = 1
 
     async def start(self) -> None:
         await self._mk3.start(self)
@@ -161,8 +162,6 @@ class Controller(Handler):
 
         if isinstance(frame, ACFrame):
             self._data.ac[frame.ac_phase - 1] = frame
-            if frame.ac_num_phases != 0:
-                self._ac_num_phases = frame.ac_num_phases
         elif isinstance(frame, ConfigFrame):
             self._data.config = frame
         elif isinstance(frame, DCFrame):
@@ -192,11 +191,11 @@ class Controller(Handler):
         await asyncio.sleep(REQUEST_INTERVAL_SECONDS)
         self._mk3.send_dc_request()
         await asyncio.sleep(REQUEST_INTERVAL_SECONDS)
-        for phase in range(1, 5):
+        for phase in range(1, AC_PHASES_POLLED):
+            # It might be nice to optimize the polling based on AC_Frame.ac_num_phases
+            # but it seems to report an incorrect number of phases on at least some devices.
             self._mk3.send_ac_request(phase)
             await asyncio.sleep(REQUEST_INTERVAL_SECONDS)
-            if phase >= self._ac_num_phases:
-                break
         self._mk3.send_config_request()
         await asyncio.sleep(REQUEST_INTERVAL_SECONDS)
 
