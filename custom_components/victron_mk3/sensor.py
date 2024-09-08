@@ -13,6 +13,7 @@ from homeassistant.const import (
     UnitOfElectricCurrent,
     UnitOfFrequency,
     UnitOfElectricPotential,
+    UnitOfPower,
 )
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -122,6 +123,14 @@ ENTITY_DESCRIPTIONS: tuple[VictronMK3SensorEntityDescription, ...] = (
         else data.config.minimum_current_limit,
     ),
     VictronMK3SensorEntityDescription(
+        key="ac_input_power",
+        name="AC Input Power",
+        device_class=SensorDeviceClass.POWER,
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement=UnitOfPower.WATT,
+        value_fn=lambda data: None if data.power is None else data.power.ac_mains_power,
+    ),
+    VictronMK3SensorEntityDescription(
         key="ac_input_frequency",
         name="AC Input Frequency",
         device_class=SensorDeviceClass.FREQUENCY,
@@ -130,6 +139,16 @@ ENTITY_DESCRIPTIONS: tuple[VictronMK3SensorEntityDescription, ...] = (
         value_fn=lambda data: None
         if data.ac[0] is None
         else data.ac[0].ac_mains_frequency,
+    ),
+    VictronMK3SensorEntityDescription(
+        key="ac_output_power",
+        name="AC Output Power",
+        device_class=SensorDeviceClass.POWER,
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement=UnitOfPower.WATT,
+        value_fn=lambda data: None
+        if data.power is None
+        else data.power.ac_inverter_power,
     ),
     VictronMK3SensorEntityDescription(
         key="ac_output_frequency",
@@ -168,6 +187,14 @@ ENTITY_DESCRIPTIONS: tuple[VictronMK3SensorEntityDescription, ...] = (
         value_fn=lambda data: None
         if data.dc is None
         else data.dc.dc_current_to_inverter,
+    ),
+    VictronMK3SensorEntityDescription(
+        key="battery_power",
+        name="Battery Power",
+        device_class=SensorDeviceClass.POWER,
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement=UnitOfPower.WATT,
+        value_fn=lambda data: None if data.power is None else data.power.dc_power,
     ),
     VictronMK3SensorEntityDescription(
         key="device_state",

@@ -32,6 +32,7 @@ from victron_mk3 import (
     Handler,
     InterfaceFlags,
     LEDResponse,
+    PowerResponse,
     Response,
     SwitchRegister,
     SwitchState,
@@ -97,6 +98,7 @@ class Data:
         self.config: ConfigResponse | None = None
         self.dc: DCResponse | None = None
         self.led: LEDResponse | None = None
+        self.power: PowerResponse | None = None
         self.version: VersionResponse | None = None
 
     def front_panel_mode(self) -> Mode | None:
@@ -199,6 +201,7 @@ class Controller(Handler):
                 if any(x.enabled for x in self.ac_entities[index])
                 else None
             )
+        data.power = await self._mk3.send_power_request()
         data.config = await self._mk3.send_config_request()
         return data
 

@@ -27,9 +27,11 @@ Refer to the [victron-mk3 library](https://github.com/j9brown/victron-mk3) for t
 
 - AC Input Voltage
 - AC Input Current
+- AC Input Power
 - AC Input Frequency
 - AC Output Voltage
 - AC Output Current
+- AC Output Power
 - AC Output Frequency
 
 If your device has multiple AC phases, you must enable the sensors for the additional phases that
@@ -40,6 +42,7 @@ you need (such as AC Input Voltage L2) because they are disabled by default.
 - Battery Voltage
 - Battery Input Current
 - Battery Output Current
+- Battery Power
 
 ### Configuration entities
 
