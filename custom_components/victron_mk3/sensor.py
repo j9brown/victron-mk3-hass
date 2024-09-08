@@ -87,13 +87,6 @@ def make_ac_phase_sensors(phase: int) -> tuple[VictronMK3SensorEntityDescription
     )
 
 
-def make_all_ac_phase_sensors() -> tuple[VictronMK3SensorEntityDescription, ...]:
-    sensors = ()
-    for phase in range(1, AC_PHASES_POLLED + 1):
-        sensors += make_ac_phase_sensors(phase)
-    return sensors
-
-
 ENTITY_DESCRIPTIONS: tuple[VictronMK3SensorEntityDescription, ...] = (
     VictronMK3SensorEntityDescription(
         key="ac_input_current_limit",
@@ -223,7 +216,7 @@ ENTITY_DESCRIPTIONS: tuple[VictronMK3SensorEntityDescription, ...] = (
         entity_category=EntityCategory.DIAGNOSTIC,
         value_fn=lambda data: enum_value(data.actual_mode()),
     ),
-) + make_all_ac_phase_sensors()
+)
 
 
 class VictronMK3SensorEntity(CoordinatorEntity, SensorEntity):
@@ -257,7 +250,15 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     context = hass.data[DOMAIN][entry.entry_id][KEY_CONTEXT]
-    async_add_entities(
+    entities = [
         VictronMK3SensorEntity(context, description)
         for description in ENTITY_DESCRIPTIONS
-    )
+    ]
+    for phase in range(1, AC_PHASES_POLLED + 1):
+        ac_sensors = [
+            VictronMK3SensorEntity(context, description)
+            for description in make_ac_phase_sensors(phase)
+        ]
+        context.controller.ac_entities[phase - 1] += ac_sensors
+        entities += ac_sensors
+    async_add_entities(entities)

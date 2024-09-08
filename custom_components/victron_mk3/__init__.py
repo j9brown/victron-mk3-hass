@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
 from datetime import timedelta
 from enum import Enum
 from homeassistant.components.device_automation.exceptions import DeviceNotFound
@@ -26,7 +25,6 @@ from homeassistant.helpers.update_coordinator import (
 import logging
 from typing import List
 from victron_mk3 import (
-    AC_PHASES_SUPPORTED,
     ACResponse,
     ConfigResponse,
     DCResponse,
@@ -95,7 +93,7 @@ SERVICE_SCHEMA = vol.Schema(
 
 class Data:
     def __init__(self) -> None:
-        self.ac: List[ACResponse | None] = [None] * AC_PHASES_SUPPORTED
+        self.ac: List[ACResponse | None] = [None] * AC_PHASES_POLLED
         self.config: ConfigResponse | None = None
         self.dc: DCResponse | None = None
         self.led: LEDResponse | None = None
@@ -149,6 +147,7 @@ class Controller(Handler):
         self._idle = False
         self._version: VersionResponse | None = None
         self.standby: bool | None = None
+        self.ac_entities = [[] for _ in range(0, AC_PHASES_POLLED)]
 
     async def start(self) -> None:
         await self._mk3.start(self)
@@ -190,10 +189,16 @@ class Controller(Handler):
         data.version = self._version
         data.led = await self._mk3.send_led_request()
         data.dc = await self._mk3.send_dc_request()
-        for phase in range(1, AC_PHASES_POLLED):
+        for phase in range(1, AC_PHASES_POLLED + 1):
             # It might be nice to optimize the polling based on AC_Response.ac_num_phases
-            # but it seems to report an incorrect number of phases on some devices.
-            data.ac[phase - 1] = await self._mk3.send_ac_request(phase)
+            # but it seems to report an incorrect number of phases on some devices so instead
+            # we only poll phases that are associated with enabled entities.
+            index = phase - 1
+            data.ac[index] = (
+                await self._mk3.send_ac_request(phase)
+                if any(x.enabled for x in self.ac_entities[index])
+                else None
+            )
         data.config = await self._mk3.send_config_request()
         return data
 
