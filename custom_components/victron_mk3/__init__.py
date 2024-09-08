@@ -51,7 +51,7 @@ from .const import (
 )
 
 PLATFORMS: list[Platform] = ["number", "select", "sensor", "switch"]
-UPDATE_INTERVAL = timedelta(seconds=5)
+UPDATE_INTERVAL = timedelta(seconds=2)
 
 
 class Mode(Enum):
