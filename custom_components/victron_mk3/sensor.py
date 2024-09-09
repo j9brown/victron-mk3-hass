@@ -169,8 +169,16 @@ ENTITY_DESCRIPTIONS: tuple[VictronMK3SensorEntityDescription, ...] = (
         value_fn=lambda data: None if data.dc is None else data.dc.dc_voltage,
     ),
     VictronMK3SensorEntityDescription(
-        key="battery_input_current",
-        name="Battery Input Current",
+        key="battery_power",
+        name="Battery Power",
+        device_class=SensorDeviceClass.POWER,
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement=UnitOfPower.WATT,
+        value_fn=lambda data: None if data.power is None else data.power.dc_power,
+    ),
+    VictronMK3SensorEntityDescription(
+        key="battery_charger_current",
+        name="Battery Charger Current",
         device_class=SensorDeviceClass.CURRENT,
         state_class=SensorStateClass.MEASUREMENT,
         native_unit_of_measurement=UnitOfElectricCurrent.AMPERE,
@@ -179,22 +187,14 @@ ENTITY_DESCRIPTIONS: tuple[VictronMK3SensorEntityDescription, ...] = (
         else data.dc.dc_current_from_charger,
     ),
     VictronMK3SensorEntityDescription(
-        key="battery_output_current",
-        name="Battery Output Current",
+        key="battery_inverter_current",
+        name="Battery Inverter Current",
         device_class=SensorDeviceClass.CURRENT,
         state_class=SensorStateClass.MEASUREMENT,
         native_unit_of_measurement=UnitOfElectricCurrent.AMPERE,
         value_fn=lambda data: None
         if data.dc is None
         else data.dc.dc_current_to_inverter,
-    ),
-    VictronMK3SensorEntityDescription(
-        key="battery_power",
-        name="Battery Power",
-        device_class=SensorDeviceClass.POWER,
-        state_class=SensorStateClass.MEASUREMENT,
-        native_unit_of_measurement=UnitOfPower.WATT,
-        value_fn=lambda data: None if data.power is None else data.power.dc_power,
     ),
     VictronMK3SensorEntityDescription(
         key="device_state",
