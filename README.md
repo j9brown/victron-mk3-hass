@@ -125,7 +125,7 @@ the AC mains to wake it up. Try sending the command again and consider enabling 
 ## HACS
 
 1. Add the integration through this link:
-   [![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=j9brown&repository=victron-mk3-hacs&category=integration)
+   [![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=j9brown&repository=victron-mk3-hass&category=integration)
 2. Restart Home Assistant
 3. Plug in the Victron MK3 interface.
 4. Setup integration via the integration page.
@@ -144,7 +144,7 @@ Here's a quick overview of some of them.
 [Victron Interface MK3-USB](https://www.victronenergy.com/accessories/interface-mk3-usb):
 
 - Actively monitor and control your device with Home Assistant using this
-  [victron-mk3-hacs](https://github.com/j9brown/victron-mk3-hacs) integration.
+  [victron-mk3-hass](https://github.com/j9brown/victron-mk3-hass) integration.
 - Can set the operating mode and current limit and keep the device in standby.
 - Configure your device over USB from a computer running [VictronConnect](https://www.victronenergy.com/victronconnectapp/victronconnect/downloads).
 

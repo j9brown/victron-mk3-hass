@@ -4,10 +4,10 @@
   "codeowners": ["@j9brown"],
   "config_flow": true,
   "dependencies": ["usb"],
-  "documentation": "https://github.com/j9brown/victron-mk3-hacs/",
+  "documentation": "https://github.com/j9brown/victron-mk3-hass/",
   "integration_type": "device",
   "iot_class": "local_push",
-  "issue_tracker": "https://github.com/j9brown/victron-mk3-hacs/issues",
+  "issue_tracker": "https://github.com/j9brown/victron-mk3-hass/issues",
   "loggers": ["victron_mk3"],
   "requirements": [
     "git+https://github.com/j9brown/victron-mk3.git@main#victron_mk3==0.4.0",
