@@ -23,6 +23,12 @@ from typing import Callable
 from victron_mk3 import DeviceState
 
 from . import Context, Data, Mode, enum_options, enum_value
+from .prioritize_wind_and_solar import (
+    PRIORITY_ENABLED_BIT,
+    PRIORITY_STATE_ACTIVE,
+    PRIORITY_STATE_OVERRIDDEN,
+    PRIORITY_STATE_AC_OR_GENERATOR,
+)
 from .const import (
     AC_PHASES_POLLED,
     DOMAIN,
@@ -90,6 +96,29 @@ def make_ac_phase_sensors(phase: int) -> tuple[VictronMK3SensorEntityDescription
             else data.ac[index].ac_inverter_current,
         ),
     )
+
+
+PRIORITY_OVERRIDE_REASONS = {
+    PRIORITY_STATE_ACTIVE: "off",
+    PRIORITY_STATE_OVERRIDDEN: "one_shot",
+    PRIORITY_STATE_AC_OR_GENERATOR: "ac_input_or_generator",
+}
+
+
+def priority_override_reason(data: Data) -> str | None:
+    """Why the device is charging to 100%, or "off". None until both reads
+    are available; "off" whenever the Solar & Wind Priority feature is
+    disabled."""
+    state = data.priority_state
+    if state is None or data.solar_wind_priority is None:
+        return None
+    if not data.solar_wind_priority.value & PRIORITY_ENABLED_BIT:
+        return "off"
+    return PRIORITY_OVERRIDE_REASONS[state]
+
+
+def on_off(value: bool | None) -> str | None:
+    return None if value is None else ("on" if value else "off")
 
 
 ENTITY_DESCRIPTIONS: tuple[VictronMK3SensorEntityDescription, ...] = (
@@ -228,6 +257,16 @@ ENTITY_DESCRIPTIONS: tuple[VictronMK3SensorEntityDescription, ...] = (
         entity_category=EntityCategory.DIAGNOSTIC,
         value_fn=lambda data: None if data.version is None else data.version.version,
     ),
+    # The device's version number, read at startup, is AA BB CCC; CCC is the
+    # firmware version.
+    VictronMK3SensorEntityDescription(
+        key="device_firmware_version",
+        name="Device Firmware Version",
+        entity_category=EntityCategory.DIAGNOSTIC,
+        value_fn=lambda data: None
+        if data.device_firmware is None
+        else data.device_firmware % 1000,
+    ),
     VictronMK3SensorEntityDescription(
         key="lit_indicators",
         name="Lit Indicators",
@@ -257,6 +296,48 @@ ENTITY_DESCRIPTIONS: tuple[VictronMK3SensorEntityDescription, ...] = (
         options=enum_options(Mode),
         entity_category=EntityCategory.DIAGNOSTIC,
         value_fn=lambda data: enum_value(data.actual_mode()),
+    ),
+    # Solar & Wind Priority, decoded from VE.Bus settings. Setting 60 bit 9
+    # (0x200) is set while the feature is enabled; setting 88 is the charge
+    # voltage scaled x100.
+    VictronMK3SensorEntityDescription(
+        key="solar_wind_priority_enabled",
+        name="Solar & Wind Priority Enabled",
+        device_class=SensorDeviceClass.ENUM,
+        options=["off", "on"],
+        entity_category=EntityCategory.DIAGNOSTIC,
+        value_fn=lambda data: None
+        if data.solar_wind_priority is None
+        else ("on" if data.solar_wind_priority.value & PRIORITY_ENABLED_BIT else "off"),
+    ),
+    VictronMK3SensorEntityDescription(
+        key="solar_wind_priority_charge_voltage",
+        name="Solar & Wind Priority Charge Voltage",
+        device_class=SensorDeviceClass.VOLTAGE,
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement=UnitOfElectricPotential.VOLT,
+        suggested_display_precision=2,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        value_fn=lambda data: None
+        if data.sustain_voltage is None
+        else data.sustain_voltage.value / 100,
+    ),
+    VictronMK3SensorEntityDescription(
+        key="solar_wind_priority_charge_to_100_reason",
+        name="Solar & Wind Priority Charge to 100% Reason",
+        device_class=SensorDeviceClass.ENUM,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        options=list(PRIORITY_OVERRIDE_REASONS.values()),
+        value_fn=priority_override_reason,
+    ),
+    # On while the device state is power_assist.
+    VictronMK3SensorEntityDescription(
+        key="power_assist_active",
+        name="PowerAssist Active",
+        device_class=SensorDeviceClass.ENUM,
+        options=["off", "on"],
+        entity_category=EntityCategory.DIAGNOSTIC,
+        value_fn=lambda data: on_off(data.power_assist_active()),
     ),
 )
 

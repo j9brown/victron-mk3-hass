@@ -21,10 +21,15 @@ set_remote_panel_state:
             - inverter_only
     current_limit:
       name: Current limit
-      description: AC input current limit in amps
+      description: AC input current limit in amps, from 0 to the device maximum. If not given, the actual current limit is kept.
       selector:
         number:
           min: 0
           max: 100
           step: any
           mode: box
+    reset_to_max_current_limit:
+      name: Reset to max current limit
+      description: Reset the AC input current limit to the device maximum instead of keeping the actual limit. This can be far above what your supply can provide. Cannot be used with current limit.
+      selector:
+        boolean:

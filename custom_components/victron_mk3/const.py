@@ -4,6 +4,7 @@ KEY_CONTEXT = "context"
 
 CONF_SERIAL_NUMBER = "serial_number"
 CONF_CURRENT_LIMIT = "current_limit"
+CONF_RESET_TO_MAX_CURRENT_LIMIT = "reset_to_max_current_limit"
 
 # The MK3 supports up to 4 but do any devices actually have more than 3?
 # Perhaps this value could be determined dynamically

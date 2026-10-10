@@ -8,7 +8,6 @@ from homeassistant.components.select import (
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant, callback
-from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from typing import Awaitable, Callable
@@ -21,13 +20,8 @@ from .const import (
 
 
 async def select_remote_panel_mode(context: Context, option: str) -> None:
-    data = context.coordinator.data
-    if data is None or data.config is None:
-        raise HomeAssistantError("Device is not available")
-
     mode = mode_from_value(option)
-    current_limit = data.config.actual_current_limit
-    await context.controller.set_remote_panel_state(mode, current_limit)
+    await context.controller.set_remote_panel_mode(mode)
     await context.coordinator.async_request_refresh()
 
 

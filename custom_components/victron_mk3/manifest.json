@@ -10,7 +10,7 @@
   "issue_tracker": "https://github.com/j9brown/victron-mk3-hass/issues",
   "loggers": ["victron_mk3"],
   "requirements": [
-    "victron_mk3 @ git+https://github.com/j9brown/victron-mk3.git@v0.6.0",
+    "victron_mk3@git+https://github.com/alexmbird/improved-victron-mk3.git@8444ed1d089e4b845efcb8889026faed8acde12b",
     "pyserial",
     "pyserial-asyncio-fast"
   ],
@@ -22,5 +22,5 @@
       "description": "*mk3*"
     }
   ],
-  "version": "0.6.0"
+  "version": "0.7.0"
 }
